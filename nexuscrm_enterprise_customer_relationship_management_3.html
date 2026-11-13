@@ -1,0 +1,1420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NexusCRM | Client & Resource Management</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Supabase JS SDK v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+                    },
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            200: '#bfdbfe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            800: '#1e40af',
+                            900: '#1e3a8a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom subtle scrollbar for sleek appearance */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f8fafc;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .fade-in {
+            animation: fadeIn 0.25s ease-out forwards;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased selection:bg-brand-100 selection:text-brand-800">
+
+    <!-- Main App Layout Container -->
+    <div class="min-h-screen flex flex-col md:flex-row">
+
+        <!-- Mobile Top Bar -->
+        <header class="md:hidden bg-white border-b border-slate-200 px-4 py-3 flex items-center justify-between sticky top-0 z-30">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-brand-600 flex items-center justify-center text-white shadow-sm">
+                    <i data-lucide="layers" class="w-5 h-5"></i>
+                </div>
+                <span class="font-bold text-lg tracking-tight text-slate-900">Nexus<span class="text-brand-600">CRM</span></span>
+            </div>
+            <button id="mobile-menu-btn" class="p-2 rounded-lg text-slate-600 hover:bg-slate-100 focus:outline-none">
+                <i data-lucide="menu" class="w-6 h-6"></i>
+            </button>
+        </header>
+
+        <!-- Sidebar Navigation -->
+        <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 w-64 bg-white border-r border-slate-200 transform -translate-x-full md:translate-x-0 md:static md:flex md:flex-col transition-transform duration-200 ease-in-out">
+            <!-- Brand Logo -->
+            <div class="h-16 px-6 flex items-center justify-between border-b border-slate-100">
+                <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('dashboard')">
+                    <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-600 to-brand-700 flex items-center justify-center text-white shadow-sm shadow-brand-200">
+                        <i data-lucide="layers" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <span class="font-bold text-lg tracking-tight text-slate-900 block leading-none">Nexus<span class="text-brand-600">CRM</span></span>
+                        <span class="text-[11px] font-medium text-slate-400 tracking-wider uppercase mt-0.5 block">Enterprise Suite</span>
+                    </div>
+                </div>
+                <button id="close-sidebar-btn" class="md:hidden p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="flex-1 px-3 py-6 space-y-1.5 overflow-y-auto">
+                <div class="px-3 mb-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">Main Menu</div>
+                
+                <button onclick="navigateTo('dashboard')" data-nav="dashboard" class="nav-item w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 bg-brand-50 text-brand-700">
+                    <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                    <span>Dashboard</span>
+                </button>
+
+                <button onclick="navigateTo('clients')" data-nav="clients" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>Clients</span>
+                    </div>
+                    <span id="nav-badge-clients" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">0</span>
+                </button>
+
+                <button onclick="navigateTo('employees')" data-nav="employees" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="briefcase" class="w-4 h-4"></i>
+                        <span>Employees</span>
+                    </div>
+                    <span id="nav-badge-employees" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">0</span>
+                </button>
+
+                <button onclick="navigateTo('products')" data-nav="products" class="nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150">
+                    <div class="flex items-center gap-3">
+                        <i data-lucide="package" class="w-4 h-4"></i>
+                        <span>Products</span>
+                    </div>
+                    <span id="nav-badge-products" class="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">10</span>
+                </button>
+            </nav>
+
+            <!-- Sidebar Footer / Database Status & Seed Actions -->
+            <div class="p-4 border-t border-slate-100">
+                <div id="db-status-card" class="bg-slate-50 rounded-xl p-3.5 border border-slate-200/70">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-slate-700 mb-1">
+                        <i id="db-status-icon" data-lucide="database" class="w-3.5 h-3.5 text-brand-600"></i>
+                        <span id="db-status-title">Connecting Supabase...</span>
+                    </div>
+                    <p id="db-status-desc" class="text-[11px] text-slate-500 leading-relaxed mb-2.5">Syncing with PostgreSQL cloud tables.</p>
+                    <div class="space-y-1.5">
+                        <button onclick="seedTestRecords()" class="w-full py-1.5 px-3 bg-brand-600 hover:bg-brand-700 text-white rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 shadow-xs">
+                            <i data-lucide="sparkles" class="w-3 h-3"></i>
+                            <span>Insert Test Records</span>
+                        </button>
+                        <button onclick="loadAllData()" class="w-full py-1.5 px-3 bg-white hover:bg-slate-100 text-slate-600 border border-slate-200 rounded-lg text-xs font-medium transition-colors flex items-center justify-center gap-1.5 shadow-xs">
+                            <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                            <span>Refresh Sync</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Backdrop for Mobile -->
+        <div id="sidebar-backdrop" class="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-30 hidden md:hidden"></div>
+
+        <!-- Main Workspace Content -->
+        <main class="flex-1 flex flex-col min-w-0 overflow-x-hidden">
+            
+            <!-- Top Header Bar -->
+            <header class="bg-white border-b border-slate-200/80 h-16 px-4 sm:px-8 flex items-center justify-between sticky top-0 z-20">
+                <div class="flex items-center gap-2 text-sm">
+                    <span class="text-slate-400">Workspace</span>
+                    <i data-lucide="chevron-right" class="w-4 h-4 text-slate-300"></i>
+                    <span id="breadcrumb-current" class="font-semibold text-slate-800 capitalize">Dashboard</span>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div id="header-db-pill" class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-medium border border-brand-100">
+                        <span id="header-db-dot" class="w-2 h-2 rounded-full bg-brand-600 animate-pulse"></span>
+                        <span id="header-db-text">Supabase Cloud</span>
+                    </div>
+                    <div class="flex items-center gap-2.5 pl-2 border-l border-slate-200">
+                        <div class="w-8 h-8 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+                            AD
+                        </div>
+                        <div class="hidden sm:block text-left">
+                            <p class="text-xs font-semibold text-slate-800 leading-none">Admin User</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Operations Manager</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Database Setup Alert Banner (Hidden automatically once Supabase connects) -->
+            <div id="supabase-setup-banner" class="hidden bg-amber-50 border-b border-amber-200 px-4 sm:px-8 py-3">
+                <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-amber-900">
+                    <div class="flex items-start sm:items-center gap-2">
+                        <i data-lucide="alert-circle" class="w-4 h-4 text-amber-600 shrink-0 mt-0.5 sm:mt-0"></i>
+                        <span id="supabase-error-detail">Running in Local Fallback Mode. Run the SQL table creation script in your Supabase SQL Editor to enable live cloud sync.</span>
+                    </div>
+                    <button onclick="loadAllData()" class="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-lg shrink-0 self-start sm:self-auto">
+                        Retry Connection
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dynamic View Container -->
+            <div class="flex-1 p-4 sm:p-8 max-w-7xl w-full mx-auto">
+
+                <!-- ==================== 1. DASHBOARD VIEW ==================== -->
+                <section id="view-dashboard" class="view-section fade-in space-y-8">
+                    <!-- Welcome Banner -->
+                    <div class="bg-gradient-to-r from-brand-700 via-brand-600 to-blue-500 rounded-2xl p-6 sm:p-8 text-white shadow-md shadow-brand-200/50 relative overflow-hidden">
+                        <div class="relative z-10 max-w-2xl">
+                            <span class="inline-block px-3 py-1 rounded-full bg-white/15 backdrop-blur-xs text-xs font-medium tracking-wide mb-3 border border-white/20">
+                                Overview & Quick Access
+                            </span>
+                            <h1 class="text-2xl sm:text-3xl font-bold tracking-tight mb-2">Welcome back to NexusCRM</h1>
+                            <p class="text-blue-100 text-sm sm:text-base leading-relaxed">
+                                Manage your client relationships, monitor your team directory, and track product catalog adoption from one unified workspace.
+                            </p>
+                        </div>
+                        <div class="absolute -right-12 -top-12 w-56 h-56 rounded-full bg-white/10 pointer-events-none"></div>
+                        <div class="absolute right-24 -bottom-16 w-40 h-40 rounded-full bg-white/5 pointer-events-none"></div>
+                    </div>
+
+                    <!-- 3 Primary Dashboard Option Cards -->
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-base font-semibold text-slate-800">Core Modules</h2>
+                            <span class="text-xs text-slate-400">Select a module to manage records</span>
+                        </div>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <!-- Card 1: Clients -->
+                            <div onclick="navigateTo('clients')" class="group bg-white rounded-2xl p-6 border border-slate-200 hover:border-brand-500 shadow-xs hover:shadow-lg hover:shadow-brand-100/50 transition-all duration-200 cursor-pointer flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="w-12 h-12 rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-600 group-hover:text-white flex items-center justify-center transition-colors duration-200">
+                                            <i data-lucide="users" class="w-6 h-6"></i>
+                                        </div>
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+                                            Manage <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors">Clients</h3>
+                                    <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                                        Add new client details, view contact information, and track purchased products.
+                                    </p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs font-medium text-slate-400">Total Registered</span>
+                                    <span id="dash-count-clients" class="text-2xl font-bold text-slate-900">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 2: Employees -->
+                            <div onclick="navigateTo('employees')" class="group bg-white rounded-2xl p-6 border border-slate-200 hover:border-brand-500 shadow-xs hover:shadow-lg hover:shadow-brand-100/50 transition-all duration-200 cursor-pointer flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="w-12 h-12 rounded-xl bg-sky-50 text-sky-600 group-hover:bg-brand-600 group-hover:text-white flex items-center justify-center transition-colors duration-200">
+                                            <i data-lucide="briefcase" class="w-6 h-6"></i>
+                                        </div>
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+                                            Directory <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors">Employees</h3>
+                                    <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                                        View internal staff members, departments, roles, and active contact details.
+                                    </p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs font-medium text-slate-400">Active Staff</span>
+                                    <span id="dash-count-employees" class="text-2xl font-bold text-slate-900">0</span>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: Products -->
+                            <div onclick="navigateTo('products')" class="group bg-white rounded-2xl p-6 border border-slate-200 hover:border-brand-500 shadow-xs hover:shadow-lg hover:shadow-brand-100/50 transition-all duration-200 cursor-pointer flex flex-col justify-between">
+                                <div>
+                                    <div class="flex items-center justify-between mb-5">
+                                        <div class="w-12 h-12 rounded-xl bg-indigo-50 text-indigo-600 group-hover:bg-brand-600 group-hover:text-white flex items-center justify-center transition-colors duration-200">
+                                            <i data-lucide="package" class="w-6 h-6"></i>
+                                        </div>
+                                        <span class="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full">
+                                            Catalog <i data-lucide="arrow-up-right" class="w-3.5 h-3.5"></i>
+                                        </span>
+                                    </div>
+                                    <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors">Products</h3>
+                                    <p class="text-sm text-slate-500 mt-1.5 leading-relaxed">
+                                        Browse available product catalog (Product 1 – Product 10) and client adoption.
+                                    </p>
+                                </div>
+                                <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between">
+                                    <span class="text-xs font-medium text-slate-400">Catalog Items</span>
+                                    <span id="dash-count-products" class="text-2xl font-bold text-slate-900">10</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Recent Clients Snapshot on Dashboard -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <div>
+                                <h3 class="text-base font-bold text-slate-900">Recent Client Acquisitions</h3>
+                                <p class="text-xs text-slate-500 mt-0.5">Latest customers and their purchased products</p>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button onclick="openClientModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold transition-colors shadow-xs">
+                                    <i data-lucide="plus" class="w-4 h-4"></i>
+                                    <span>Quick Add Client</span>
+                                </button>
+                                <button onclick="navigateTo('clients')" class="inline-flex items-center gap-1 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200/70 text-slate-700 text-xs font-semibold transition-colors">
+                                    <span>View All</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50/70 border-b border-slate-100 text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="py-3 px-6">Client Name</th>
+                                        <th class="py-3 px-6">Contact</th>
+                                        <th class="py-3 px-6">Email</th>
+                                        <th class="py-3 px-6">Product Purchased</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dash-recent-clients" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 2. CLIENTS VIEW ==================== -->
+                <section id="view-clients" class="view-section hidden fade-in space-y-6">
+                    <!-- Section Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Clients Management</h1>
+                            <p class="text-sm text-slate-500 mt-1">View, add, and manage your customer records and product purchases.</p>
+                        </div>
+                        <button onclick="openClientModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-sm shadow-brand-200 transition-all cursor-pointer">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            <span>Add New Client</span>
+                        </button>
+                    </div>
+
+                    <!-- Search & Product Filter Bar -->
+                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row gap-3 items-center justify-between">
+                        <div class="relative w-full sm:w-80">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                            <input type="text" id="client-search" oninput="renderClients()" placeholder="Search by name, email, or phone..." class="w-full pl-10 pr-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all">
+                        </div>
+                        <div class="flex items-center gap-3 w-full sm:w-auto">
+                            <label for="client-product-filter" class="text-xs font-medium text-slate-500 whitespace-nowrap">Filter by Product:</label>
+                            <select id="client-product-filter" onchange="renderClients()" class="w-full sm:w-48 px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500">
+                                <option value="ALL">All Products</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Clients Data Table -->
+                    <div class="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr class="bg-slate-50 border-b border-slate-200/80 text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                                        <th class="py-3.5 px-6">Client Name</th>
+                                        <th class="py-3.5 px-6">Contact Number</th>
+                                        <th class="py-3.5 px-6">Email Address</th>
+                                        <th class="py-3.5 px-6">Product Purchased</th>
+                                        <th class="py-3.5 px-6 text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="clients-table-body" class="divide-y divide-slate-100 text-sm">
+                                    <!-- Populated by JS -->
+                                </tbody>
+                            </table>
+                        </div>
+                        <!-- Empty State -->
+                        <div id="clients-empty-state" class="hidden py-12 px-4 text-center">
+                            <div class="w-12 h-12 rounded-full bg-brand-50 text-brand-600 flex items-center justify-center mx-auto mb-3">
+                                <i data-lucide="users" class="w-6 h-6"></i>
+                            </div>
+                            <h3 class="text-sm font-semibold text-slate-900">No clients found</h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-xs mx-auto">Try adjusting your search or filter, or add a new client to your CRM.</p>
+                            <button onclick="openClientModal()" class="mt-4 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-brand-600 text-white text-xs font-semibold hover:bg-brand-700 transition-colors">
+                                <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add Client
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- ==================== 3. EMPLOYEES VIEW ==================== -->
+                <section id="view-employees" class="view-section hidden fade-in space-y-6">
+                    <!-- Section Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Employees Directory</h1>
+                            <p class="text-sm text-slate-500 mt-1">Manage your team members, roles, and department assignments.</p>
+                        </div>
+                        <button onclick="openEmployeeModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-sm shadow-brand-200 transition-all cursor-pointer">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Add Employee</span>
+                        </button>
+                    </div>
+
+                    <!-- Employees Grid -->
+                    <div id="employees-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+                <!-- ==================== 4. PRODUCTS VIEW ==================== -->
+                <section id="view-products" class="view-section hidden fade-in space-y-6">
+                    <!-- Section Header -->
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div>
+                            <h1 class="text-2xl font-bold text-slate-900 tracking-tight">Products Catalog</h1>
+                            <p class="text-sm text-slate-500 mt-1">Standard product lineup from Product 1 through Product 10 with live client purchase counts.</p>
+                        </div>
+                        <button onclick="openProductModal()" class="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold shadow-sm shadow-brand-200 transition-all cursor-pointer">
+                            <i data-lucide="package-plus" class="w-4 h-4"></i>
+                            <span>Add Custom Product</span>
+                        </button>
+                    </div>
+
+                    <!-- Products Grid -->
+                    <div id="products-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                        <!-- Populated by JS -->
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- ==================== MODAL: ADD / EDIT CLIENT ==================== -->
+    <div id="client-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center">
+                        <i data-lucide="user-plus" class="w-4 h-4"></i>
+                    </div>
+                    <h3 id="client-modal-title" class="text-base font-bold text-slate-900">Add New Client</h3>
+                </div>
+                <button onclick="closeClientModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="client-form" onsubmit="handleClientSubmit(event)" class="p-6 space-y-4">
+                <input type="hidden" id="client-id">
+                
+                <!-- Field 1: Name -->
+                <div>
+                    <label for="client-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Client Name <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="text" id="client-name" required placeholder="e.g. Aarav Sharma" class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+                    </div>
+                </div>
+
+                <!-- Field 2: Contact -->
+                <div>
+                    <label for="client-contact" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Contact Number <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i data-lucide="phone" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="tel" id="client-contact" required placeholder="e.g. +91 98765 43210" class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+                    </div>
+                </div>
+
+                <!-- Field 3: Email -->
+                <div>
+                    <label for="client-email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Email Address <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i data-lucide="mail" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <input type="email" id="client-email" required placeholder="e.g. aarav.sharma@company.com" class="w-full pl-10 pr-4 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all">
+                    </div>
+                </div>
+
+                <!-- Field 4: Product Purchased -->
+                <div>
+                    <label for="client-product" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Product Purchased <span class="text-red-500">*</span></label>
+                    <div class="relative">
+                        <i data-lucide="package" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                        <select id="client-product" required class="w-full pl-10 pr-8 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600 transition-all appearance-none">
+                        </select>
+                        <i data-lucide="chevron-down" class="w-4 h-4 text-slate-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button type="button" onclick="closeClientModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors">
+                        Cancel
+                    </button>
+                    <button type="submit" id="client-submit-btn" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm shadow-brand-200 transition-colors">
+                        Save Client Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: ADD EMPLOYEE ==================== -->
+    <div id="employee-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center">
+                        <i data-lucide="briefcase" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Add Team Member</h3>
+                </div>
+                <button onclick="closeEmployeeModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="employee-form" onsubmit="handleEmployeeSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label for="emp-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Full Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="emp-name" required placeholder="e.g. Priya Kulkarni" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label for="emp-role" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Role <span class="text-red-500">*</span></label>
+                        <input type="text" id="emp-role" required placeholder="e.g. Account Executive" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                    </div>
+                    <div>
+                        <label for="emp-dept" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Department <span class="text-red-500">*</span></label>
+                        <select id="emp-dept" class="w-full px-3 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                            <option value="Sales">Sales</option>
+                            <option value="Customer Success">Customer Success</option>
+                            <option value="Product">Product</option>
+                            <option value="Operations">Operations</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label for="emp-email" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Work Email <span class="text-red-500">*</span></label>
+                    <input type="email" id="emp-email" required placeholder="priya@nexuscrm.io" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                </div>
+                <div>
+                    <label for="emp-contact" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Phone Number <span class="text-red-500">*</span></label>
+                    <input type="tel" id="emp-contact" required placeholder="+91 98230 11223" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                </div>
+                <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button type="button" onclick="closeEmployeeModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm">Add Employee</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== MODAL: ADD PRODUCT ==================== -->
+    <div id="product-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-md w-full border border-slate-200 shadow-2xl overflow-hidden fade-in">
+            <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-brand-100 text-brand-600 flex items-center justify-center">
+                        <i data-lucide="package-plus" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900">Add New Product</h3>
+                </div>
+                <button onclick="closeProductModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-200/60 transition-colors">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+
+            <form id="product-form" onsubmit="handleProductSubmit(event)" class="p-6 space-y-4">
+                <div>
+                    <label for="prod-name" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Product Name <span class="text-red-500">*</span></label>
+                    <input type="text" id="prod-name" required placeholder="e.g. Product 11" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                </div>
+                <div>
+                    <label for="prod-category" class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1.5">Category</label>
+                    <select id="prod-category" class="w-full px-3.5 py-2.5 text-sm bg-white border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-600">
+                        <option value="Enterprise Software">Enterprise Software</option>
+                        <option value="Cloud Suite">Cloud Suite</option>
+                        <option value="Analytics Module">Analytics Module</option>
+                        <option value="Security Add-on">Security Add-on</option>
+                    </select>
+                </div>
+                <div class="pt-3 flex items-center justify-end gap-3 border-t border-slate-100">
+                    <button type="button" onclick="closeProductModal()" class="px-4 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-brand-600 hover:bg-brand-700 text-white shadow-sm">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ==================== CUSTOM CONFIRMATION DIALOG ==================== -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-900/50 backdrop-blur-xs">
+        <div class="bg-white rounded-2xl max-w-sm w-full border border-slate-200 shadow-2xl p-6 fade-in">
+            <div class="w-11 h-11 rounded-full bg-red-50 text-red-600 flex items-center justify-center mb-4">
+                <i data-lucide="alert-triangle" class="w-5 h-5"></i>
+            </div>
+            <h3 id="confirm-title" class="text-base font-bold text-slate-900">Confirm Action</h3>
+            <p id="confirm-message" class="text-sm text-slate-500 mt-1.5 leading-relaxed">Are you sure you want to proceed?</p>
+            <div class="mt-6 flex items-center justify-end gap-3">
+                <button onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100">Cancel</button>
+                <button id="confirm-yes-btn" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white shadow-xs">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== TOAST NOTIFICATION ==================== -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ==================== APPLICATION LOGIC ==================== -->
+    <script>
+        // ==================== add supabase code ====================
+        // Paste or update your Supabase Project URL and Publishable/Anon Key right here:
+        const NEXT_PUBLIC_SUPABASE_URL = 'https://acbgsfzczdorihfljgdh.supabase.co';
+        const NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY = 'sb_publishable_j37K3QVQXbr37G9H9ky_Kg_OTdEhcPx';
+
+        // Initialize the Supabase Client
+        const supabaseClient = window.supabase.createClient(
+            NEXT_PUBLIC_SUPABASE_URL,
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
+        );
+        // ==================== supabse code ends ====================
+
+        // Local Fallback Storage Keys (used automatically if Supabase tables aren't created yet)
+        const STORAGE_KEYS = {
+            CLIENTS: 'nexus_crm_clients_v1',
+            EMPLOYEES: 'nexus_crm_employees_v1',
+            PRODUCTS: 'nexus_crm_products_v1'
+        };
+
+        // Default Initial Products (Product 1 to Product 10)
+        const DEFAULT_PRODUCTS = Array.from({ length: 10 }, (_, idx) => {
+            const num = idx + 1;
+            const categories = ['Enterprise Software', 'Cloud Suite', 'Analytics Module', 'Security Add-on'];
+            return {
+                id: `PRD-${String(num).padStart(3, '0')}`,
+                name: `Product ${num}`,
+                category: categories[idx % categories.length],
+                status: 'Active'
+            };
+        });
+
+        // Default Sample Clients
+        const DEFAULT_CLIENTS = [
+            {
+                id: 'CL-101',
+                name: 'Aarav Deshmukh',
+                contact: '+91 98234 56789',
+                email: 'aarav.deshmukh@sahayadri.in',
+                product: 'Product 1'
+            },
+            {
+                id: 'CL-102',
+                name: 'Sneha Kulkarni',
+                contact: '+91 97654 32109',
+                email: 'sneha.k@novatech.co.in',
+                product: 'Product 3'
+            },
+            {
+                id: 'CL-103',
+                name: 'Rohan Mehta',
+                contact: '+91 99221 10455',
+                email: 'rohan@mehtalogistics.com',
+                product: 'Product 5'
+            }
+        ];
+
+        // Default Sample Employees
+        const DEFAULT_EMPLOYEES = [
+            {
+                id: 'EMP-01',
+                name: 'Siddharth Verma',
+                role: 'Senior Account Manager',
+                department: 'Sales',
+                email: 'siddharth.v@nexuscrm.io',
+                contact: '+91 98111 22334',
+                status: 'Active'
+            },
+            {
+                id: 'EMP-02',
+                name: 'Meera Nair',
+                role: 'Customer Success Lead',
+                department: 'Customer Success',
+                email: 'meera.nair@nexuscrm.io',
+                contact: '+91 98222 33445',
+                status: 'Active'
+            }
+        ];
+
+        // Application State
+        let state = {
+            clients: [],
+            employees: [],
+            products: [],
+            currentView: 'dashboard',
+            isCloudConnected: false
+        };
+
+        function updateConnectionUI(connected, errorMessage = '') {
+            state.isCloudConnected = connected;
+            const banner = document.getElementById('supabase-setup-banner');
+            const title = document.getElementById('db-status-title');
+            const desc = document.getElementById('db-status-desc');
+            const pill = document.getElementById('header-db-pill');
+            const dot = document.getElementById('header-db-dot');
+            const headerText = document.getElementById('header-db-text');
+
+            if (connected) {
+                banner.classList.add('hidden');
+                title.textContent = 'Live: Supabase DB';
+                desc.textContent = 'Connected to PostgreSQL cloud database.';
+                pill.className = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-medium border border-emerald-200';
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-500 animate-pulse';
+                headerText.textContent = 'Supabase Connected';
+            } else {
+                banner.classList.remove('hidden');
+                if (errorMessage) {
+                    document.getElementById('supabase-error-detail').textContent = `Supabase Notice: ${errorMessage} — Running in Local Storage fallback mode.`;
+                }
+                title.textContent = 'Local Storage Fallback';
+                desc.textContent = 'Run SQL table setup in Supabase to sync live.';
+                pill.className = 'hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 text-xs font-medium border border-amber-200';
+                dot.className = 'w-2 h-2 rounded-full bg-amber-500';
+                headerText.textContent = 'Local Fallback Mode';
+            }
+        }
+
+        // Load Data from Supabase (with automatic LocalStorage fallback)
+        async function loadAllData() {
+            try {
+                const [prodRes, clientRes, empRes] = await Promise.all([
+                    supabaseClient.from('products').select('*').order('id', { ascending: true }),
+                    supabaseClient.from('clients').select('*').order('created_at', { ascending: true }),
+                    supabaseClient.from('employees').select('*').order('created_at', { ascending: true })
+                ]);
+
+                if (prodRes.error || clientRes.error || empRes.error) {
+                    const err = prodRes.error || clientRes.error || empRes.error;
+                    throw new Error(err.message);
+                }
+
+                // Map Supabase rows to UI state format
+                state.products = (prodRes.data || []).map((p, idx) => ({
+                    id: `PRD-${String(p.id || idx + 1).padStart(3, '0')}`,
+                    dbId: p.id,
+                    name: p.name,
+                    category: p.category || 'Enterprise Software',
+                    status: 'Active'
+                }));
+
+                state.clients = (clientRes.data || []).map(c => ({
+                    id: String(c.id),
+                    name: c.name,
+                    contact: c.contact,
+                    email: c.email,
+                    product: c.product_purchased
+                }));
+
+                state.employees = (empRes.data || []).map(e => ({
+                    id: String(e.id),
+                    name: e.name,
+                    role: e.role,
+                    department: e.department,
+                    email: e.email,
+                    contact: e.phone,
+                    status: 'Active'
+                }));
+
+                // If database is completely empty on first connect, auto-seed Product 1..10 & sample records
+                if (state.products.length === 0) {
+                    await seedTestRecords(true);
+                    return;
+                }
+
+                updateConnectionUI(true);
+                saveLocalBackup();
+                populateProductDropdowns();
+                refreshCurrentView();
+            } catch (err) {
+                console.warn('Supabase fallback triggered:', err.message);
+                updateConnectionUI(false, err.message);
+                loadLocalFallback();
+            }
+        }
+
+        function loadLocalFallback() {
+            const savedProducts = localStorage.getItem(STORAGE_KEYS.PRODUCTS);
+            const savedClients = localStorage.getItem(STORAGE_KEYS.CLIENTS);
+            const savedEmployees = localStorage.getItem(STORAGE_KEYS.EMPLOYEES);
+
+            state.products = savedProducts ? JSON.parse(savedProducts) : [...DEFAULT_PRODUCTS];
+            state.clients = savedClients ? JSON.parse(savedClients) : [...DEFAULT_CLIENTS];
+            state.employees = savedEmployees ? JSON.parse(savedEmployees) : [...DEFAULT_EMPLOYEES];
+
+            saveLocalBackup();
+            populateProductDropdowns();
+            refreshCurrentView();
+        }
+
+        function saveLocalBackup() {
+            localStorage.setItem(STORAGE_KEYS.PRODUCTS, JSON.stringify(state.products));
+            localStorage.setItem(STORAGE_KEYS.CLIENTS, JSON.stringify(state.clients));
+            localStorage.setItem(STORAGE_KEYS.EMPLOYEES, JSON.stringify(state.employees));
+            updateCounters();
+        }
+
+        // Seed Sample / Test Records into Supabase across all 3 modules
+        async function seedTestRecords(silent = false) {
+            try {
+                // 1. Seed Product 1 to Product 10
+                const productsPayload = DEFAULT_PRODUCTS.map(p => ({
+                    name: p.name,
+                    category: p.category
+                }));
+                await supabaseClient.from('products').upsert(productsPayload, { onConflict: 'name' });
+
+                // 2. Seed Test Clients
+                const clientsPayload = [
+                    { name: 'Aarav Deshmukh', contact: '+91 98234 56789', email: 'aarav.deshmukh@sahayadri.in', product_purchased: 'Product 1' },
+                    { name: 'Sneha Kulkarni', contact: '+91 97654 32109', email: 'sneha.k@novatech.co.in', product_purchased: 'Product 3' },
+                    { name: 'Rohan Mehta', contact: '+91 99221 10455', email: 'rohan@mehtalogistics.com', product_purchased: 'Product 5' },
+                    { name: 'Ananya Joshi', contact: '+91 98500 77889', email: 'ananya.joshi@bluewave.io', product_purchased: 'Product 2' }
+                ];
+                const { error: cErr } = await supabaseClient.from('clients').insert(clientsPayload);
+                if (cErr) throw new Error(cErr.message);
+
+                // 3. Seed Test Employees
+                const employeesPayload = [
+                    { name: 'Siddharth Verma', role: 'Senior Account Manager', department: 'Sales', email: 'siddharth.v@nexuscrm.io', phone: '+91 98111 22334' },
+                    { name: 'Meera Nair', role: 'Customer Success Lead', department: 'Customer Success', email: 'meera.nair@nexuscrm.io', phone: '+91 98222 33445' },
+                    { name: 'Karthik Iyer', role: 'Product Specialist', department: 'Product', email: 'karthik.iyer@nexuscrm.io', phone: '+91 98333 44556' }
+                ];
+                const { error: eErr } = await supabaseClient.from('employees').insert(employeesPayload);
+                if (eErr) throw new Error(eErr.message);
+
+                if (!silent) showToast('Test records inserted into Supabase!');
+                await loadAllData();
+            } catch (err) {
+                showToast(`Could not insert to Supabase: ${err.message}`);
+            }
+        }
+
+        function refreshCurrentView() {
+            updateCounters();
+            if (state.currentView === 'dashboard') renderDashboard();
+            if (state.currentView === 'clients') renderClients();
+            if (state.currentView === 'employees') renderEmployees();
+            if (state.currentView === 'products') renderProducts();
+            lucide.createIcons();
+        }
+
+        // Navigation Logic
+        function navigateTo(viewName) {
+            state.currentView = viewName;
+
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('hidden'));
+            const targetSection = document.getElementById(`view-${viewName}`);
+            if (targetSection) {
+                targetSection.classList.remove('hidden');
+            }
+
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                const isTarget = btn.getAttribute('data-nav') === viewName;
+                if (isTarget) {
+                    btn.className = 'nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150 bg-brand-50 text-brand-700 shadow-2xs';
+                } else {
+                    btn.className = 'nav-item w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 hover:text-slate-900 transition-all duration-150';
+                }
+            });
+
+            document.getElementById('breadcrumb-current').textContent = viewName;
+            closeMobileSidebar();
+
+            if (viewName === 'clients') populateProductDropdowns();
+            refreshCurrentView();
+        }
+
+        function updateCounters() {
+            const cCount = state.clients.length;
+            const eCount = state.employees.length;
+            const pCount = state.products.length;
+
+            document.getElementById('nav-badge-clients').textContent = cCount;
+            document.getElementById('nav-badge-employees').textContent = eCount;
+            document.getElementById('nav-badge-products').textContent = pCount;
+
+            document.getElementById('dash-count-clients').textContent = cCount;
+            document.getElementById('dash-count-employees').textContent = eCount;
+            document.getElementById('dash-count-products').textContent = pCount;
+        }
+
+        // ==================== RENDER FUNCTIONS ====================
+
+        function renderDashboard() {
+            updateCounters();
+            const tbody = document.getElementById('dash-recent-clients');
+            const recent = [...state.clients].reverse().slice(0, 5);
+
+            if (recent.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="py-8 text-center text-sm text-slate-400">No clients added yet. Click "Quick Add Client" to begin.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = recent.map(client => `
+                <tr class="hover:bg-slate-50/80 transition-colors">
+                    <td class="py-3.5 px-6 font-medium text-slate-900 flex items-center gap-3">
+                        <div class="w-8 h-8 rounded-full bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center shrink-0">
+                            ${getInitials(client.name)}
+                        </div>
+                        <span>${escapeHTML(client.name)}</span>
+                    </td>
+                    <td class="py-3.5 px-6 text-slate-600">${escapeHTML(client.contact)}</td>
+                    <td class="py-3.5 px-6 text-slate-600">${escapeHTML(client.email)}</td>
+                    <td class="py-3.5 px-6">
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-100">
+                            <i data-lucide="package" class="w-3 h-3"></i>
+                            ${escapeHTML(client.product)}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderClients() {
+            const searchTerm = (document.getElementById('client-search')?.value || '').toLowerCase().trim();
+            const productFilter = document.getElementById('client-product-filter')?.value || 'ALL';
+
+            const filtered = state.clients.filter(client => {
+                const matchesSearch =
+                    client.name.toLowerCase().includes(searchTerm) ||
+                    client.email.toLowerCase().includes(searchTerm) ||
+                    client.contact.toLowerCase().includes(searchTerm) ||
+                    client.product.toLowerCase().includes(searchTerm);
+
+                const matchesProduct = productFilter === 'ALL' || client.product === productFilter;
+                return matchesSearch && matchesProduct;
+            });
+
+            const tbody = document.getElementById('clients-table-body');
+            const emptyState = document.getElementById('clients-empty-state');
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                lucide.createIcons();
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            tbody.innerHTML = filtered.map(client => `
+                <tr class="hover:bg-blue-50/30 transition-colors group">
+                    <td class="py-4 px-6">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 rounded-full bg-brand-100 text-brand-700 font-bold text-xs flex items-center justify-center shrink-0">
+                                ${getInitials(client.name)}
+                            </div>
+                            <div>
+                                <p class="font-semibold text-slate-900">${escapeHTML(client.name)}</p>
+                                <p class="text-[11px] text-slate-400 font-mono">${escapeHTML(client.id.slice(0, 8))}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-slate-600 font-medium">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>${escapeHTML(client.contact)}</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6 text-slate-600">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400"></i>
+                            <span>${escapeHTML(client.email)}</span>
+                        </div>
+                    </td>
+                    <td class="py-4 px-6">
+                        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200/70">
+                            <i data-lucide="check-circle-2" class="w-3.5 h-3.5 text-brand-600"></i>
+                            ${escapeHTML(client.product)}
+                        </span>
+                    </td>
+                    <td class="py-4 px-6 text-right">
+                        <div class="inline-flex items-center gap-1.5">
+                            <button onclick="openClientModal('${client.id}')" title="Edit Client" class="p-2 rounded-lg text-slate-400 hover:text-brand-600 hover:bg-brand-50 transition-colors">
+                                <i data-lucide="pencil" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="deleteClient('${client.id}')" title="Delete Client" class="p-2 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function renderEmployees() {
+            const grid = document.getElementById('employees-grid');
+            grid.innerHTML = state.employees.map(emp => `
+                <div class="bg-white rounded-2xl p-6 border border-slate-200 hover:border-brand-300 shadow-xs transition-all flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-3.5">
+                                <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-brand-600 to-blue-500 text-white font-bold text-sm flex items-center justify-center shadow-xs shrink-0">
+                                    ${getInitials(emp.name)}
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-900 text-base">${escapeHTML(emp.name)}</h3>
+                                    <p class="text-xs font-medium text-brand-600 mt-0.5">${escapeHTML(emp.role)}</p>
+                                </div>
+                            </div>
+                            <button onclick="deleteEmployee('${emp.id}')" title="Remove Employee" class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        <div class="mt-5 pt-4 border-t border-slate-100 space-y-2.5 text-xs text-slate-600">
+                            <div class="flex items-center gap-2.5">
+                                <i data-lucide="building-2" class="w-4 h-4 text-slate-400"></i>
+                                <span>Department: <strong class="text-slate-800">${escapeHTML(emp.department)}</strong></span>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <i data-lucide="mail" class="w-4 h-4 text-slate-400"></i>
+                                <span class="truncate">${escapeHTML(emp.email)}</span>
+                            </div>
+                            <div class="flex items-center gap-2.5">
+                                <i data-lucide="phone" class="w-4 h-4 text-slate-400"></i>
+                                <span>${escapeHTML(emp.contact)}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-[11px] font-mono text-slate-400">${escapeHTML(emp.id.slice(0, 8))}</span>
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/60">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            ${escapeHTML(emp.status || 'Active')}
+                        </span>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderProducts() {
+            const grid = document.getElementById('products-grid');
+            grid.innerHTML = state.products.map(prod => {
+                const buyerCount = state.clients.filter(c => c.product === prod.name).length;
+
+                return `
+                <div class="bg-white rounded-2xl p-5 border border-slate-200 hover:border-brand-500 hover:shadow-md hover:shadow-brand-100/40 transition-all flex flex-col justify-between group">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-10 h-10 rounded-xl bg-brand-50 text-brand-600 group-hover:bg-brand-600 group-hover:text-white flex items-center justify-center transition-colors">
+                                <i data-lucide="box" class="w-5 h-5"></i>
+                            </div>
+                            <span class="text-[11px] font-mono font-semibold px-2.5 py-1 rounded-md bg-slate-100 text-slate-600">
+                                ${escapeHTML(prod.id)}
+                            </span>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-900 group-hover:text-brand-600 transition-colors">${escapeHTML(prod.name)}</h3>
+                        <p class="text-xs text-slate-500 mt-1">${escapeHTML(prod.category)}</p>
+                    </div>
+
+                    <div class="mt-6 pt-3.5 border-t border-slate-100 flex items-center justify-between">
+                        <div class="flex items-center gap-1.5 text-xs font-medium text-slate-600">
+                            <i data-lucide="users" class="w-3.5 h-3.5 text-brand-600"></i>
+                            <span>${buyerCount} ${buyerCount === 1 ? 'Client' : 'Clients'}</span>
+                        </div>
+                        <button onclick="filterClientsByProduct('${escapeHTML(prod.name)}')" class="text-xs font-semibold text-brand-600 hover:text-brand-800 inline-flex items-center gap-1">
+                            <span>View Buyers</span>
+                            <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        function populateProductDropdowns() {
+            const clientSelect = document.getElementById('client-product');
+            const filterSelect = document.getElementById('client-product-filter');
+
+            if (clientSelect) {
+                clientSelect.innerHTML = state.products.map(p =>
+                    `<option value="${escapeHTML(p.name)}">${escapeHTML(p.name)} (${escapeHTML(p.id)})</option>`
+                ).join('');
+            }
+
+            if (filterSelect) {
+                const currentVal = filterSelect.value || 'ALL';
+                filterSelect.innerHTML = `<option value="ALL">All Products</option>` +
+                    state.products.map(p =>
+                        `<option value="${escapeHTML(p.name)}">${escapeHTML(p.name)}</option>`
+                    ).join('');
+                filterSelect.value = currentVal;
+            }
+        }
+
+        function filterClientsByProduct(productName) {
+            navigateTo('clients');
+            const filterSelect = document.getElementById('client-product-filter');
+            if (filterSelect) {
+                filterSelect.value = productName;
+                renderClients();
+            }
+        }
+
+        // ==================== CLIENT MODAL & CRUD ====================
+
+        function openClientModal(clientId = null) {
+            populateProductDropdowns();
+            const modal = document.getElementById('client-modal');
+            const form = document.getElementById('client-form');
+            const title = document.getElementById('client-modal-title');
+
+            form.reset();
+            document.getElementById('client-id').value = '';
+
+            if (clientId) {
+                const client = state.clients.find(c => c.id === clientId);
+                if (client) {
+                    title.textContent = 'Edit Client Details';
+                    document.getElementById('client-id').value = client.id;
+                    document.getElementById('client-name').value = client.name;
+                    document.getElementById('client-contact').value = client.contact;
+                    document.getElementById('client-email').value = client.email;
+                    document.getElementById('client-product').value = client.product;
+                }
+            } else {
+                title.textContent = 'Add New Client';
+            }
+
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeClientModal() {
+            const modal = document.getElementById('client-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function handleClientSubmit(event) {
+            event.preventDefault();
+            const id = document.getElementById('client-id').value;
+            const name = document.getElementById('client-name').value.trim();
+            const contact = document.getElementById('client-contact').value.trim();
+            const email = document.getElementById('client-email').value.trim();
+            const product = document.getElementById('client-product').value;
+
+            if (!name || !contact || !email || !product) return;
+
+            if (state.isCloudConnected) {
+                if (id) {
+                    const { error } = await supabaseClient
+                        .from('clients')
+                        .update({ name, contact, email, product_purchased: product })
+                        .eq('id', id);
+                    if (error) return showToast(`Error: ${error.message}`);
+                    showToast(`Updated ${name} in Supabase`);
+                } else {
+                    const { error } = await supabaseClient
+                        .from('clients')
+                        .insert([{ name, contact, email, product_purchased: product }]);
+                    if (error) return showToast(`Error: ${error.message}`);
+                    showToast(`Saved ${name} to Supabase`);
+                }
+                closeClientModal();
+                await loadAllData();
+            } else {
+                // Local fallback
+                if (id) {
+                    const idx = state.clients.findIndex(c => c.id === id);
+                    if (idx !== -1) state.clients[idx] = { id, name, contact, email, product };
+                } else {
+                    state.clients.push({ id: `CL-${Date.now()}`, name, contact, email, product });
+                }
+                saveLocalBackup();
+                closeClientModal();
+                refreshCurrentView();
+                showToast(`Saved ${name} locally`);
+            }
+        }
+
+        function deleteClient(clientId) {
+            const client = state.clients.find(c => c.id === clientId);
+            if (!client) return;
+
+            openConfirmModal(
+                'Delete Client Record',
+                `Are you sure you want to remove "${client.name}" from your client directory?`,
+                async () => {
+                    if (state.isCloudConnected) {
+                        const { error } = await supabaseClient.from('clients').delete().eq('id', clientId);
+                        if (error) return showToast(`Error: ${error.message}`);
+                        await loadAllData();
+                    } else {
+                        state.clients = state.clients.filter(c => c.id !== clientId);
+                        saveLocalBackup();
+                        refreshCurrentView();
+                    }
+                    showToast(`Removed client ${client.name}`);
+                }
+            );
+        }
+
+        // ==================== EMPLOYEE MODAL & CRUD ====================
+
+        function openEmployeeModal() {
+            document.getElementById('employee-form').reset();
+            const modal = document.getElementById('employee-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeEmployeeModal() {
+            const modal = document.getElementById('employee-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function handleEmployeeSubmit(event) {
+            event.preventDefault();
+            const name = document.getElementById('emp-name').value.trim();
+            const role = document.getElementById('emp-role').value.trim();
+            const department = document.getElementById('emp-dept').value;
+            const email = document.getElementById('emp-email').value.trim();
+            const contact = document.getElementById('emp-contact').value.trim();
+
+            if (state.isCloudConnected) {
+                const { error } = await supabaseClient
+                    .from('employees')
+                    .insert([{ name, role, department, email, phone: contact }]);
+                if (error) return showToast(`Error: ${error.message}`);
+                closeEmployeeModal();
+                await loadAllData();
+                showToast(`Added ${name} to Supabase`);
+            } else {
+                state.employees.push({
+                    id: `EMP-${Date.now()}`,
+                    name,
+                    role,
+                    department,
+                    email,
+                    contact,
+                    status: 'Active'
+                });
+                saveLocalBackup();
+                closeEmployeeModal();
+                refreshCurrentView();
+                showToast(`Added ${name} locally`);
+            }
+        }
+
+        function deleteEmployee(empId) {
+            const emp = state.employees.find(e => e.id === empId);
+            if (!emp) return;
+
+            openConfirmModal(
+                'Remove Employee',
+                `Remove "${emp.name}" from the active employee directory?`,
+                async () => {
+                    if (state.isCloudConnected) {
+                        const { error } = await supabaseClient.from('employees').delete().eq('id', empId);
+                        if (error) return showToast(`Error: ${error.message}`);
+                        await loadAllData();
+                    } else {
+                        state.employees = state.employees.filter(e => e.id !== empId);
+                        saveLocalBackup();
+                        refreshCurrentView();
+                    }
+                    showToast(`Removed ${emp.name}`);
+                }
+            );
+        }
+
+        // ==================== PRODUCT MODAL & CRUD ====================
+
+        function openProductModal() {
+            document.getElementById('product-form').reset();
+            document.getElementById('prod-name').value = `Product ${state.products.length + 1}`;
+            const modal = document.getElementById('product-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeProductModal() {
+            const modal = document.getElementById('product-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function handleProductSubmit(event) {
+            event.preventDefault();
+            const name = document.getElementById('prod-name').value.trim();
+            const category = document.getElementById('prod-category').value;
+
+            if (!name) return;
+
+            if (state.isCloudConnected) {
+                const { error } = await supabaseClient
+                    .from('products')
+                    .insert([{ name, category }]);
+                if (error) return showToast(`Error: ${error.message}`);
+                closeProductModal();
+                await loadAllData();
+                showToast(`Added ${name} to Supabase`);
+            } else {
+                state.products.push({
+                    id: `PRD-${String(state.products.length + 1).padStart(3, '0')}`,
+                    name,
+                    category,
+                    status: 'Active'
+                });
+                saveLocalBackup();
+                populateProductDropdowns();
+                closeProductModal();
+                refreshCurrentView();
+                showToast(`Added ${name} locally`);
+            }
+        }
+
+        // ==================== CONFIRMATION HELPERS ====================
+
+        let pendingConfirmAction = null;
+
+        function openConfirmModal(title, message, onConfirm) {
+            document.getElementById('confirm-title').textContent = title;
+            document.getElementById('confirm-message').textContent = message;
+            pendingConfirmAction = onConfirm;
+
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            lucide.createIcons();
+        }
+
+        function closeConfirmModal() {
+            const modal = document.getElementById('confirm-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            pendingConfirmAction = null;
+        }
+
+        document.getElementById('confirm-yes-btn').addEventListener('click', () => {
+            if (typeof pendingConfirmAction === 'function') {
+                pendingConfirmAction();
+            }
+            closeConfirmModal();
+        });
+
+        // ==================== UTILITIES ====================
+
+        function showToast(message) {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = 'pointer-events-auto flex items-center gap-2.5 bg-slate-900 text-white text-xs font-medium px-4 py-3 rounded-xl shadow-lg border border-slate-700 fade-in';
+            toast.innerHTML = `
+                <i data-lucide="check-circle" class="w-4 h-4 text-brand-400 shrink-0"></i>
+                <span>${escapeHTML(message)}</span>
+            `;
+            container.appendChild(toast);
+            lucide.createIcons();
+
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(6px)';
+                toast.style.transition = 'all 0.2s ease';
+                setTimeout(() => toast.remove(), 220);
+            }, 3000);
+        }
+
+        function getInitials(name) {
+            return name
+                .split(' ')
+                .filter(Boolean)
+                .slice(0, 2)
+                .map(n => n[0].toUpperCase())
+                .join('');
+        }
+
+        function escapeHTML(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        // Mobile Sidebar Toggles
+        const sidebar = document.getElementById('sidebar');
+        const backdrop = document.getElementById('sidebar-backdrop');
+
+        function openMobileSidebar() {
+            sidebar.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+        }
+
+        function closeMobileSidebar() {
+            sidebar.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+        }
+
+        document.getElementById('mobile-menu-btn').addEventListener('click', openMobileSidebar);
+        document.getElementById('close-sidebar-btn').addEventListener('click', closeMobileSidebar);
+        backdrop.addEventListener('click', closeMobileSidebar);
+
+        // App Bootstrap
+        window.addEventListener('DOMContentLoaded', () => {
+            loadAllData();
+            navigateTo('dashboard');
+        });
+    </script>
+</body>
+</html>
